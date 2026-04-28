@@ -118,11 +118,26 @@ func getSubPath(s string, directory string) (string, bool, string) {
 	}
 
 	sourcePath = trimQuotes(sourcePath)
-	if strings.HasPrefix(sourcePath, "./") {
-		sourcePath = strings.TrimPrefix(sourcePath, "./")
-	}
 
-	subPath := directory + "/" + sourcePath
+	var subPath string
+
+	// path is Absolute, or starts with $HOME or ~
+	if filepath.IsAbs(sourcePath) || strings.HasPrefix(sourcePath, "$HOME") || strings.HasPrefix(sourcePath, "~") {
+		subPath = sourcePath
+
+		homeDir, err := os.UserHomeDir() // Expand $HOME and ~ to the actual directory path
+		if err == nil {
+			if strings.HasPrefix(subPath, "$HOME") {
+				subPath = strings.Replace(subPath, "$HOME", homeDir, 1)
+			} else if strings.HasPrefix(subPath, "~") {
+				subPath = strings.Replace(subPath, "~", homeDir, 1)
+			}
+		}
+	} else {
+		// relative path, use existing
+		sourcePath = strings.TrimPrefix(sourcePath, "./")
+		subPath = filepath.Join(directory, sourcePath)
+	}
 
 	return subPath, embedded, prefix
 }
